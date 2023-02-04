@@ -13,24 +13,6 @@ ad_password = os.environ['INZERAT_HESLO']
 ADS_DIR = 'inzeraty'
 create_directory(ADS_DIR)
 
-HEADERS = {
-        'authority': 'www.bazos.sk',
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'accept-language': 'en-US,en;q=0.9',
-        'cache-control': 'max-age=0',
-        'origin': 'https://www.bazos.sk',
-        'referer': 'https://www.bazos.sk/moje-inzeraty.php',
-        'sec-ch-ua': '"Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Linux"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'same-origin',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-    }
-
 
 def main():
     validate_user_input(email, phone)
@@ -67,25 +49,9 @@ def main():
 
 def download_ad(session, url):
     authority = re.findall(r"https://([^/]*)/", url)[0]
-    headers = {
-        'authority': authority,
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'accept-language': 'en-US,en;q=0.9',
-        'cache-control': 'max-age=0',
-        'if-modified-since': 'Tue, 31 Jan 2023 06:38:54 GMT',
-        'sec-ch-ua': '"Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Linux"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'none',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-    }
 
-    ad_id = re.findall(r"\d+", url)[0]
-    txt = session.get(f"https://{authority}/inzerat/{ad_id}/.php", headers=headers).text
+    ad_id = get_id_from_link(url)
+    txt = session.get(f"https://{authority}/inzerat/{ad_id}/.php", headers=get_headers(authority)).text
 
     location_raw = txt.split('Lokalita:<')[-1].split('<tr>')[0]
 
@@ -119,43 +85,9 @@ def download_ad(session, url):
 
 def delete_ad(session, url):
     authority = re.findall(r"https://([^/]*)/", url)[0]
-    ad_id = re.findall(r"\d+", url)[0]
-    headers = {
-        'authority': authority,
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'accept-language': 'en-US,en;q=0.9',
-        'if-modified-since': 'Sun, 22 Jan 2023 23:19:32 GMT',
-        'referer': 'https://www.bazos.sk/',
-        'sec-ch-ua': '"Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Linux"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'same-site',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-    }
+    ad_id = get_id_from_link(url)
 
-    response = session.get('https://elektro.bazos.sk/zmazat/146856117.php', headers=headers)
-
-    headers = {
-        'authority': authority,
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'accept-language': 'en-US,en;q=0.9',
-        'cache-control': 'max-age=0',
-        'origin': f'https://{authority}',
-        'referer': url,
-        'sec-ch-ua': '"Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Linux"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'same-origin',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-    }
+    session.get(f'https://{authority}/zmazat/{ad_id}.php', headers=get_headers(authority))
 
     data = {
         'heslobazar': ad_password,
@@ -163,7 +95,7 @@ def delete_ad(session, url):
         'administrace': 'Zmazať',
     }
 
-    resp = session.post('https://elektro.bazos.sk/deletei2.php', headers=headers, data=data).text
+    resp = session.post(f'https://{authority}/deletei2.php', headers=get_headers(authority, url), data=data).text
     if 'Inzerát bol vymazaný z nášho bazáru.' in resp:
         return True
 
@@ -183,23 +115,7 @@ async def fetch_image(session, url):
 
 
 def get_my_ads(session):
-    headers = {
-        'authority': 'www.bazos.sk',
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'accept-language': 'en-US,en;q=0.9',
-        'referer': 'https://www.bazos.sk/',
-        'sec-ch-ua': '"Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Linux"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'same-origin',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-    }
-
-    txt = session.get('https://www.bazos.sk/moje-inzeraty.php', headers=headers).text
+    txt = session.get('https://www.bazos.sk/moje-inzeraty.php', headers=get_headers()).text
     return txt
 
 
@@ -210,7 +126,7 @@ def send_authentication(session):
         'Submit': 'Overiť',
     }
 
-    response = session.post('https://www.bazos.sk/moje-inzeraty.php', headers=HEADERS, data=data)
+    response = session.post('https://www.bazos.sk/moje-inzeraty.php', headers=get_headers(), data=data)
     txt = response.text
     if is_error(txt):
         print(f"ERROR: {txt}")
@@ -225,7 +141,7 @@ def send_phone_key(session, key):
         'Submit': 'Odoslať',
     }
 
-    response = session.post('https://www.bazos.sk/moje-inzeraty.php', headers=HEADERS, data=data)
+    response = session.post('https://www.bazos.sk/moje-inzeraty.php', headers=get_headers(), data=data)
     txt = response.text
     if is_error(txt):
         err = get_error_msg(txt)

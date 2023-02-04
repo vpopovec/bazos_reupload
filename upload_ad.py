@@ -43,7 +43,7 @@ def upload_pic(pic_path, info):
     body, header = urllib3.encode_multipart_formdata(fields, boundary=boundary)
     headers['content-type'] = header
 
-    r = requests.post('https://elektro.bazos.sk/upload.php', data=body, headers=headers)
+    r = requests.post(f'https://{info["authority"]}/upload.php', data=body, headers=headers)
 
     ids = r.json()
     return ids[0]
