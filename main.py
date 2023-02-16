@@ -32,7 +32,10 @@ def main():
 
     ads_to_upload = []
     for ad_link in ad_links:
-        download_ad(session, ad_link)
+        downloaded = download_ad(session, ad_link)
+        if not downloaded:
+            print(f"Couldn't download ad number {get_id_from_link(ad_link)}")
+            continue
         success = delete_ad(session, ad_link)
 
         if success:
@@ -76,12 +79,14 @@ def download_ad(session, url):
 
     images = asyncio.run(download_images(info['img_links']))
     images = [i for i in images if i]
+    if not images:
+        return
 
     for url, img_content in images:
         file_name = url.split('img/')[1].split('/')[0] + ".jpg"
         with open(f"{ad_path}{os.path.sep}{file_name}", mode='wb') as wf:
             wf.write(img_content)
-
+    return True
 
 def delete_ad(session, url):
     authority = re.findall(r"https://([^/]*)/", url)[0]
@@ -101,9 +106,18 @@ def delete_ad(session, url):
 
 
 async def download_images(urls):
-    async with aiohttp.ClientSession() as session:
-        coros = (fetch_image(session, url) for url in urls)
-        res = await asyncio.gather(*coros)
+    for i in range(5):
+        try:
+            async with aiohttp.ClientSession() as session:
+                coros = (fetch_image(session, url) for url in urls)
+                res = await asyncio.gather(*coros)
+        except:
+            if i == 4:
+                print("Couldn't download images")
+
+    if not all(res):
+        print(f"Not all images could be downloaded, check your internet connection and try again")
+        return []
     return res
 
 
