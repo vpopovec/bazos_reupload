@@ -6,6 +6,10 @@ import urllib3
 import glob
 from dotenv import load_dotenv
 
+"""
+    Bazos changes one field and value in insert.php call every few weeks...
+"""
+
 ADS_DIR = 'inzeraty'
 load_dotenv()
 email = os.environ['EMAIL']
@@ -114,7 +118,8 @@ def upload_ad(session, ad_id):
         ('telefoni', phone),
         ('maili', email),
         ('heslobazar', ad_password),
-        ('werfhgfda', 'regsgtr'),
+        # ('werfhgfda', 'regsgtr'),
+        ('sdfweh', 'awegdfg'),
         ('Submit', 'Odoslať')
     ]
     photo_ids = upload_photos(ad_path, info)

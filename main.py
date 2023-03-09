@@ -1,6 +1,9 @@
 import json
 import aiohttp
 import asyncio
+
+import requests
+
 from helpers import *
 from dotenv import load_dotenv
 from upload_ad import upload_ad
@@ -17,6 +20,7 @@ create_directory(ADS_DIR)
 def main():
     validate_user_input(email, phone)
     session = load_session()
+    # THE PROBLEM DOESN'T LIE WITH SESSION COOKIES... MAYBE HASH ID ?
 
     resp = get_my_ads(session)
     if not already_logged_in(resp):
@@ -47,6 +51,8 @@ def main():
     for ad_id in ads_to_upload:
         resp, ad_title = upload_ad(session, ad_id)
         success = 'SUCCESSFUL' if 'Inzerát bol vložený' in resp else 'FAILED'
+        if success == 'FAILED':
+            print(resp)
         print(f"UPLOADING OF {ad_title} {success}")
 
 
@@ -88,6 +94,7 @@ def download_ad(session, url):
             wf.write(img_content)
     return True
 
+
 def delete_ad(session, url):
     authority = re.findall(r"https://([^/]*)/", url)[0]
     ad_id = get_id_from_link(url)
@@ -124,7 +131,7 @@ async def download_images(urls):
 async def fetch_image(session, url):
     async with session.get(url, timeout=10) as response:
         if response.status == 200:
-            img_content = await response.read()
+            img_content = await response.content.read()
             return [url, img_content]
 
 
