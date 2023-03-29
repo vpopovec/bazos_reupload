@@ -1,9 +1,6 @@
 import json
 import aiohttp
 import asyncio
-
-import requests
-
 from helpers import *
 from dotenv import load_dotenv
 from upload_ad import upload_ad
@@ -40,6 +37,7 @@ def main():
         if not downloaded:
             print(f"Couldn't download ad number {get_id_from_link(ad_link)}")
             continue
+
         success = delete_ad(session, ad_link)
 
         if success:
@@ -64,8 +62,13 @@ def download_ad(session, url):
 
     location_raw = txt.split('Lokalita:<')[-1].split('<tr>')[0]
 
-    img_links_preview = re.findall(r'src="https://www.bazos.sk/img/([^"]*)"', txt.split('<div class="podobne">')[0])
-    img_links_preview = [f"https://www.bazos.sk/img/{i}" for i in img_links_preview if 't/' in i]
+    img_previews = re.findall(r'src="https://www.bazos.sk/img/([^"]*)"', txt.split('<div class="podobne">')[0])
+    img_previews = [f"https://www.bazos.sk/img/{i}" for i in img_previews if re.match(r"\dt/\d+/\d+\.[a-z]*", i)]
+
+    if not img_previews:  # One picture ad with no previews
+        img_previews = re.findall(r'src="https://www.bazos.sk/img/([^"]*)"', txt.split('<div class="podobne">')[0])
+        img_previews = [f"https://www.bazos.sk/img/{i}" for i in img_previews if re.match(r"\d/\d+/\d+\.[a-z]*", i)]
+    img_previews = [f"{route.split('?')[0]}" for route in img_previews]
 
     info = {'ad_header': txt.split('class=nadpisdetail>')[1].split('</')[0],
             'ad_description': txt.split('class=popisdetail>')[1].split('</')[0],
@@ -75,7 +78,7 @@ def download_ad(session, url):
             'zip_code': re.findall(r">(\d{3}.?\d{2})<", location_raw)[0],
             'city': location_raw.split('</a>')[-2].split('>')[-1],
             'price': txt.split('Cena:')[-1].split('</b>')[0].split('<b>')[-1].strip(),
-            'img_links': [i.replace('t/', '/') for i in img_links_preview]}
+            'img_links': [i.replace('t/', '/') for i in img_previews]}
 
     ad_path = f"{ADS_DIR}{os.path.sep}{ad_id}"
     create_directory(ad_path)
